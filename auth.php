@@ -1,5 +1,6 @@
 <?php
-include 'config.php';
+// Use absolute path for config
+require_once __DIR__ . '/config.php';
 
 // Hardcoded admin credentials
 $admin_username = "Stanytz076";
