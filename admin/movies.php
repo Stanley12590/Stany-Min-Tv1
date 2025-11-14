@@ -1,82 +1,164 @@
-<?php include 'common/header.php'; 
+<?php
+ob_start();
+require_once '../config.php';
+requireAuth();
 
-// Handle form submission
+// Handle form submissions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $movie_data = [
-        'title' => $_POST['title'],
-        'poster_url' => $_POST['poster_url'],
-        'description' => $_POST['description'],
-        'rating' => $_POST['rating'],
-        'release_year' => $_POST['release_year'],
-        'category_id' => $_POST['category_id'],
-        'watch_link' => $_POST['watch_link']
-    ];
+    $title = $_POST['title'] ?? '';
+    $poster_url = $_POST['poster_url'] ?? '';
+    $description = $_POST['description'] ?? '';
+    $rating = $_POST['rating'] ?? '';
+    $realesa_year = $_POST['realesa_year'] ?? '';
+    $watch_link = $_POST['watch_link'] ?? '';
     
-    $result = supabaseInsert('movies', $movie_data);
-    if ($result) {
-        $success = "Movie added successfully!";
+    if (!empty($title)) {
+        $data = [
+            'title' => $title,
+            'poster_url' => $poster_url,
+            'description' => $description,
+            'rating' => $rating,
+            'realesa_year' => $realesa_year,
+            'watch_link' => $watch_link,
+            'created_at' => date('Y-m-d H:i:s')
+        ];
+        
+        if (supabaseInsert('Movie', $data)) {
+            $_SESSION['message'] = 'Movie added successfully!';
+            header('Location: movies.php');
+            exit;
+        } else {
+            $error = 'Failed to add movie!';
+        }
     } else {
-        $error = "Failed to add movie!";
+        $error = 'Movie title is required!';
     }
 }
 
-// Get categories for dropdown
-$categories = supabaseFetch('categories');
-$movies = supabaseFetch('movies', ['order' => 'created_at.desc']);
+// Handle delete action
+if (isset($_GET['delete'])) {
+    $id = $_GET['delete'];
+    if (supabaseDelete('Movie', $id)) {
+        $_SESSION['message'] = 'Movie deleted successfully!';
+    } else {
+        $_SESSION['error'] = 'Failed to delete movie!';
+    }
+    header('Location: movies.php');
+    exit;
+}
+
+// Get all movies
+$movies = supabaseFetch('Movie', ['order' => 'created_at.desc']);
+ob_end_clean();
 ?>
-
-<div class="mb-6">
-    <h2 class="text-2xl font-bold mb-2">Movies Management</h2>
-    <p class="text-gray-400">Add and manage movies</p>
-</div>
-
-<!-- Add Movie Form -->
-<div class="bg-gray-800 rounded-lg p-4 mb-6">
-    <h3 class="text-lg font-bold mb-4">Add New Movie</h3>
-    
-    <?php if(isset($success)): ?>
-    <div class="bg-green-500 text-white p-3 rounded mb-4">
-        <i class="fas fa-check-circle mr-2"></i><?php echo $success; ?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stany Min TV - Movies</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background: #f5f5f5; }
+        .header { background: white; padding: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 30px; }
+        .header h1 { color: #333; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .form-container { background: white; padding: 20px; border-radius: 5px; margin-bottom: 30px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input, textarea, select { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+        .btn { background: #667eea; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; border: none; cursor: pointer; }
+        .btn-danger { background: #dc3545; }
+        table { width: 100%; background: white; border-collapse: collapse; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background: #f8f9fa; }
+        .message { background: #d4edda; color: #155724; padding: 10px; border-radius: 5px; margin-bottom: 20px; }
+        .error { background: #f8d7da; color: #721c24; padding: 10px; border-radius: 5px; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Stany Min TV - Manage Movies</h1>
+        <div>
+            <a href="index.php">Dashboard</a> | 
+            <a href="logout.php">Logout</a>
+        </div>
     </div>
-    <?php endif; ?>
     
-    <?php if(isset($error)): ?>
-    <div class="bg-red-500 text-white p-3 rounded mb-4">
-        <i class="fas fa-exclamation-circle mr-2"></i><?php echo $error; ?>
-    </div>
-    <?php endif; ?>
-    
-    <form method="POST" class="space-y-4">
-        <div class="grid grid-cols-1 gap-4">
-            <div>
-                <label class="block text-gray-300 mb-2">Movie Title *</label>
-                <input type="text" name="title" required 
-                       class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-blue-500"
-                       placeholder="Enter movie title">
-            </div>
-            
-            <div>
-                <label class="block text-gray-300 mb-2">Poster URL *</label>
-                <input type="url" name="poster_url" required 
-                       class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-blue-500"
-                       placeholder="https://example.com/poster.jpg">
-            </div>
-            
-            <div>
-                <label class="block text-gray-300 mb-2">Description *</label>
-                <textarea name="description" rows="3" required 
-                          class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-blue-500"
-                          placeholder="Enter movie description"></textarea>
-            </div>
-            
-            <div class="grid grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-gray-300 mb-2">Rating</label>
-                    <input type="number" name="rating" step="0.1" min="0" max="10" 
-                           class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-blue-500"
-                           placeholder="7.5">
+    <div class="container">
+        <?php if (isset($_SESSION['message'])): ?>
+            <div class="message"><?php echo $_SESSION['message']; unset($_SESSION['message']); ?></div>
+        <?php endif; ?>
+        
+        <?php if (isset($_SESSION['error'])): ?>
+            <div class="error"><?php echo $_SESSION['error']; unset($_SESSION['error']); ?></div>
+        <?php endif; ?>
+        
+        <!-- Add Movie Form -->
+        <div class="form-container">
+            <h2>Add New Movie</h2>
+            <form method="POST" action="">
+                <div class="form-group">
+                    <label for="title">Movie Title:</label>
+                    <input type="text" id="title" name="title" required>
                 </div>
-                
+                <div class="form-group">
+                    <label for="poster_url">Poster URL:</label>
+                    <input type="text" id="poster_url" name="poster_url">
+                </div>
+                <div class="form-group">
+                    <label for="description">Description:</label>
+                    <textarea id="description" name="description" rows="3"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="rating">Rating:</label>
+                    <input type="text" id="rating" name="rating" placeholder="e.g., 8.5/10">
+                </div>
+                <div class="form-group">
+                    <label for="realesa_year">Release Year:</label>
+                    <input type="number" id="realesa_year" name="realesa_year" min="1900" max="2030">
+                </div>
+                <div class="form-group">
+                    <label for="watch_link">Watch Link:</label>
+                    <input type="text" id="watch_link" name="watch_link">
+                </div>
+                <button type="submit" class="btn">Add Movie</button>
+            </form>
+        </div>
+        
+        <!-- Movies List -->
+        <h2>All Movies</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Rating</th>
+                    <th>Year</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php if (empty($movies)): ?>
+                    <tr><td colspan="4" style="text-align: center;">No movies found</td></tr>
+                <?php else: ?>
+                    <?php foreach ($movies as $movie): ?>
+                    <tr>
+                        <td><?php echo htmlspecialchars($movie['title'] ?? ''); ?></td>
+                        <td><?php echo htmlspecialchars($movie['rating'] ?? ''); ?></td>
+                        <td><?php echo htmlspecialchars($movie['realesa_year'] ?? ''); ?></td>
+                        <td>
+                            <a href="?action=edit&id=<?php echo $movie['id']; ?>" class="btn">Edit</a>
+                            <a href="?delete=<?php echo $movie['id']; ?>" class="btn btn-danger" 
+                               onclick="return confirm('Delete this movie?')">Delete</a>
+                        </td>
+                    </tr>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>                
                 <div>
                     <label class="block text-gray-300 mb-2">Release Year</label>
                     <input type="number" name="release_year" min="1900" max="2030" 
