@@ -1,97 +1,143 @@
 <?php
-// Use absolute path for auth
-require_once __DIR__ . '/../auth.php';
+ob_start();
+require_once '../config.php';
 
+// If already logged in, redirect to dashboard
 if (isLoggedIn()) {
-    header('Location: dashboard.php');
+    header('Location: index.php');
     exit;
 }
 
 $error = '';
+
+// Handle login form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = $_POST['username'] ?? '';
     $password = $_POST['password'] ?? '';
     
-    if (login($username, $password)) {
-        header('Location: dashboard.php');
+    // Simple hardcoded credentials (replace with database check in production)
+    $valid_username = 'admin';
+    $valid_password = 'admin123'; // Change this in production
+    
+    if ($username === $valid_username && $password === $valid_password) {
+        $_SESSION['admin_logged_in'] = true;
+        $_SESSION['admin_username'] = $username;
+        header('Location: index.php');
         exit;
     } else {
         $error = 'Invalid username or password!';
     }
 }
+ob_end_clean();
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Login - Stany Min TV</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <title>Nipe Admin - Login</title>
     <style>
-        * {
-            -webkit-user-select: none;
-            -moz-user-select: none;
-            -ms-user-select: none;
-            user-select: none;
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: Arial, sans-serif; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .login-container {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 400px;
+        }
+        .login-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .login-header h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: bold;
+        }
+        input[type="text"],
+        input[type="password"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        input[type="text"]:focus,
+        input[type="password"]:focus {
+            border-color: #667eea;
+            outline: none;
+        }
+        .btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: opacity 0.3s;
+        }
+        .btn:hover {
+            opacity: 0.9;
+        }
+        .error {
+            background: #fee;
+            color: #c33;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            text-align: center;
+            border: 1px solid #fcc;
         }
     </style>
 </head>
-<body class="bg-gray-900 min-h-screen flex items-center justify-center" oncontextmenu="return false;">
-    <div class="max-w-md w-full bg-gray-800 rounded-lg shadow-lg p-8">
-        <div class="text-center mb-8">
-            <div class="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                <i class="fas fa-tv text-white text-2xl"></i>
-            </div>
-            <h1 class="text-3xl font-bold text-white mb-2">Stany Min TV</h1>
-            <p class="text-gray-400">Admin Panel Login</p>
+<body>
+    <div class="login-container">
+        <div class="login-header">
+            <h1>Nipe Admin</h1>
+            <p>Please sign in to continue</p>
         </div>
         
         <?php if ($error): ?>
-            <div class="bg-red-500 text-white p-3 rounded mb-4">
-                <i class="fas fa-exclamation-circle mr-2"></i><?php echo $error; ?>
-            </div>
+            <div class="error"><?php echo htmlspecialchars($error); ?></div>
         <?php endif; ?>
         
-        <form method="POST" class="space-y-6">
-            <div>
-                <label class="block text-gray-300 mb-2">Username</label>
-                <input type="text" name="username" required 
-                       class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-blue-500">
+        <form method="POST" action="">
+            <div class="form-group">
+                <label for="username">Username:</label>
+                <input type="text" id="username" name="username" required value="<?php echo htmlspecialchars($_POST['username'] ?? ''); ?>">
             </div>
             
-            <div>
-                <label class="block text-gray-300 mb-2">Password</label>
-                <input type="password" name="password" required 
-                       class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-blue-500">
+            <div class="form-group">
+                <label for="password">Password:</label>
+                <input type="password" id="password" name="password" required>
             </div>
             
-            <button type="submit" 
-                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition duration-200">
-                <i class="fas fa-sign-in-alt mr-2"></i>Login
-            </button>
+            <button type="submit" class="btn">Sign In</button>
         </form>
         
-        <div class="mt-6 text-center text-gray-400 text-sm">
-            <p>Default Credentials:</p>
-            <p>Username: <strong>admin</strong></p>
-            <p>Password: <strong>Stanytz076#</strong></p>
+        <div style="margin-top: 20px; text-align: center; color: #666; font-size: 12px;">
+            Default credentials: admin / admin123
         </div>
     </div>
-
-    <script>
-        // Disable right-click, text selection, and zoom
-        document.addEventListener('contextmenu', function(e) { e.preventDefault(); });
-        document.addEventListener('selectstart', function(e) { e.preventDefault(); });
-        
-        // Disable zoom
-        document.addEventListener('touchstart', function(e) { if (e.touches.length > 1) e.preventDefault(); });
-        let lastTouchEnd = 0;
-        document.addEventListener('touchend', function(e) {
-            const now = (new Date()).getTime();
-            if (now - lastTouchEnd <= 300) e.preventDefault();
-            lastTouchEnd = now;
-        }, false);
-    </script>
 </body>
 </html>
