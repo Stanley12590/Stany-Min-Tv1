@@ -1,5 +1,6 @@
 <?php
-include '../auth.php';
+// Use absolute path for auth
+require_once __DIR__ . '/../auth.php';
 
 if (isLoggedIn()) {
     header('Location: dashboard.php');
@@ -30,14 +31,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <style>
         * {
             -webkit-user-select: none;
-            -moz-user-select: none;
-            -ms-user-select: none;
-            user-select: none;
-        }
-        body {
-            -webkit-touch-callout: none;
-            -webkit-user-select: none;
-            -khtml-user-select: none;
             -moz-user-select: none;
             -ms-user-select: none;
             user-select: none;
@@ -90,7 +83,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Disable right-click, text selection, and zoom
         document.addEventListener('contextmenu', function(e) { e.preventDefault(); });
         document.addEventListener('selectstart', function(e) { e.preventDefault(); });
-        document.addEventListener('dragstart', function(e) { e.preventDefault(); });
         
         // Disable zoom
         document.addEventListener('touchstart', function(e) { if (e.touches.length > 1) e.preventDefault(); });
