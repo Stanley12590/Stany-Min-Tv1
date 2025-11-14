@@ -136,4 +136,4 @@ function requireAuth() {
         header('Location: login.php');
         exit;
     }
-} 
+}
