@@ -1,82 +1,238 @@
-<?php include 'common/header.php'; 
+<?php
+// Start output buffering at the VERY beginning
+ob_start();
 
-// Handle form submission
+// Include config first to get all functions
+require_once '../config.php';
+
+// Check authentication
+requireAuth();
+
+// Handle form submissions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $category_data = [
-        'category_name' => $_POST['category_name']
-    ];
+    $name = $_POST['name'] ?? '';
+    $description = $_POST['description'] ?? '';
     
-    $result = supabaseInsert('categories', $category_data);
-    if ($result) {
-        $success = "Category added successfully!";
-        // Refresh categories list
-        $categories = supabaseFetch('categories', ['order' => 'created_at.desc']);
+    if (!empty($name)) {
+        $data = [
+            'name' => $name,
+            'description' => $description,
+            'created_at' => date('Y-m-d H:i:s')
+        ];
+        
+        if (supabaseInsert('categories', $data)) {
+            $_SESSION['message'] = 'Category added successfully!';
+            header('Location: categories.php');
+            exit;
+        } else {
+            $error = 'Failed to add category!';
+        }
     } else {
-        $error = "Failed to add category!";
+        $error = 'Category name is required!';
     }
 }
 
-$categories = supabaseFetch('categories', ['order' => 'created_at.desc']);
+// Handle delete action
+if (isset($_GET['delete'])) {
+    $id = $_GET['delete'];
+    if (supabaseDelete('categories', $id)) {
+        $_SESSION['message'] = 'Category deleted successfully!';
+    } else {
+        $_SESSION['error'] = 'Failed to delete category!';
+    }
+    header('Location: categories.php');
+    exit;
+}
+
+// Get all categories
+$categories = supabaseFetch('categories', ['order' => 'name.asc']);
+ob_end_clean();
 ?>
-
-<div class="mb-6">
-    <h2 class="text-2xl font-bold mb-2">Categories Management</h2>
-    <p class="text-gray-400">Add and manage content categories</p>
-</div>
-
-<!-- Add Category Form -->
-<div class="bg-gray-800 rounded-lg p-4 mb-6">
-    <h3 class="text-lg font-bold mb-4">Add New Category</h3>
-    
-    <?php if(isset($success)): ?>
-    <div class="bg-green-500 text-white p-3 rounded mb-4">
-        <i class="fas fa-check-circle mr-2"></i><?php echo $success; ?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stany Min TV - Categories</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: Arial, sans-serif; 
+            background: #f5f5f5;
+        }
+        .header {
+            background: white;
+            padding: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            color: #333;
+        }
+        .user-info {
+            color: #666;
+        }
+        .logout {
+            color: #c33;
+            text-decoration: none;
+            margin-left: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .action-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .btn {
+            background: #667eea;
+            color: white;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 5px;
+            border: none;
+            cursor: pointer;
+        }
+        .btn-danger {
+            background: #dc3545;
+        }
+        table {
+            width: 100%;
+            background: white;
+            border-collapse: collapse;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background: #f8f9fa;
+            font-weight: bold;
+        }
+        .message {
+            background: #d4edda;
+            color: #155724;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="text"],
+        textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .form-container {
+            background: white;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Stany Min TV - Categories</h1>
+        <div class="user-info">
+            <a href="index.php">Dashboard</a> | 
+            Welcome, Admin
+            <a href="logout.php" class="logout">Logout</a>
+        </div>
     </div>
-    <?php endif; ?>
     
-    <?php if(isset($error)): ?>
-    <div class="bg-red-500 text-white p-3 rounded mb-4">
-        <i class="fas fa-exclamation-circle mr-2"></i><?php echo $error; ?>
-    </div>
-    <?php endif; ?>
-    
-    <form method="POST" class="space-y-4">
-        <div>
-            <label class="block text-gray-300 mb-2">Category Name *</label>
-            <input type="text" name="category_name" required 
-                   class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-blue-500"
-                   placeholder="e.g., Action, Drama, News, Sports">
-        </div>
-        
-        <button type="submit" 
-                class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-lg transition duration-200">
-            <i class="fas fa-plus-circle mr-2"></i>Add Category
-        </button>
-    </form>
-</div>
-
-<!-- Categories List -->
-<div class="bg-gray-800 rounded-lg p-4">
-    <h3 class="text-lg font-bold mb-4">All Categories (<?php echo count($categories); ?>)</h3>
-    
-    <div class="grid grid-cols-2 gap-3">
-        <?php foreach($categories as $category): ?>
-        <div class="bg-gray-700 p-4 rounded-lg text-center">
-            <div class="w-12 h-12 bg-purple-600 rounded-lg flex items-center justify-center mx-auto mb-2">
-                <i class="fas fa-tag text-white"></i>
-            </div>
-            <h4 class="font-semibold"><?php echo $category['category_name']; ?></h4>
-            <p class="text-gray-400 text-sm">ID: <?php echo substr($category['id'], 0, 8); ?>...</p>
-        </div>
-        <?php endforeach; ?>
-        
-        <?php if(empty($categories)): ?>
-        <div class="col-span-2 text-center py-8 text-gray-500">
-            <i class="fas fa-tags text-4xl mb-2"></i>
-            <p>No categories added yet</p>
-            <p class="text-sm mt-2">Add your first category using the form above</p>
-        </div>
+    <div class="container">
+        <?php if (isset($_SESSION['message'])): ?>
+            <div class="message"><?php echo $_SESSION['message']; unset($_SESSION['message']); ?></div>
         <?php endif; ?>
+        
+        <?php if (isset($_SESSION['error'])): ?>
+            <div class="error"><?php echo $_SESSION['error']; unset($_SESSION['error']); ?></div>
+        <?php endif; ?>
+        
+        <?php if (isset($error)): ?>
+            <div class="error"><?php echo $error; ?></div>
+        <?php endif; ?>
+        
+        <!-- Add Category Form -->
+        <div class="form-container">
+            <h2>Add New Category</h2>
+            <form method="POST" action="">
+                <div class="form-group">
+                    <label for="name">Category Name:</label>
+                    <input type="text" id="name" name="name" required>
+                </div>
+                <div class="form-group">
+                    <label for="description">Description:</label>
+                    <textarea id="description" name="description" rows="3"></textarea>
+                </div>
+                <button type="submit" class="btn">Add Category</button>
+            </form>
+        </div>
+        
+        <!-- Categories List -->
+        <div class="action-bar">
+            <h2>All Categories</h2>
+        </div>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Description</th>
+                    <th>Created At</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php if (empty($categories)): ?>
+                    <tr>
+                        <td colspan="4" style="text-align: center;">No categories found</td>
+                    </tr>
+                <?php else: ?>
+                    <?php foreach ($categories as $category): ?>
+                    <tr>
+                        <td><?php echo htmlspecialchars($category['name'] ?? ''); ?></td>
+                        <td><?php echo htmlspecialchars($category['description'] ?? ''); ?></td>
+                        <td><?php echo date('Y-m-d H:i', strtotime($category['created_at'] ?? '')); ?></td>
+                        <td>
+                            <a href="?action=edit&id=<?php echo $category['id']; ?>" class="btn">Edit</a>
+                            <a href="?delete=<?php echo $category['id']; ?>" class="btn btn-danger" 
+                               onclick="return confirm('Are you sure you want to delete this category?')">Delete</a>
+                        </td>
+                    </tr>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>        <?php endif; ?>
     </div>
 </div>
 
